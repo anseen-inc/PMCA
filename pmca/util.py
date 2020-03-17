@@ -7,7 +7,7 @@ plt.switch_backend('TkAgg')
 
 
 def measure(mca, n):
-    plt.ion()
+    #plt.ion()
     fig, ax = plt.subplots(1, 1)
     x = np.arange(0, pmca.PMCA.CHANNELS)
     y = np.zeros(pmca.PMCA.CHANNELS, dtype=int)
@@ -18,11 +18,9 @@ def measure(mca, n):
 
     for i in range(n):
         print(i)
-        type, data = mca.wait_data()
-        if type != mca.TYPE_HISTOGRAM:
-            print('other data was received')
-            break
+        data = mca.wait_histogram()
         data = np.array(data) - 1
+        print('count rate: ' + str(data.sum()) + ' [cps]')
         y += data
         lines.set_data(x, y)
         ax.relim()
@@ -32,12 +30,13 @@ def measure(mca, n):
 
     mca.stop_measurement()
     pmca.save_histogram_by_date(y)
+    plt.show()
 
     return y
 
 
 def _oscilloscope(mca, mode, n):
-    plt.ion()
+    #plt.ion()
     fig, ax = plt.subplots(1, 1)
     x = np.arange(0, pmca.PMCA.CHANNELS)
     y = np.zeros(pmca.PMCA.CHANNELS, dtype=int)
@@ -48,10 +47,7 @@ def _oscilloscope(mca, mode, n):
 
     for i in range(n):
         print(i)
-        type, data = mca.wait_data()
-        if type != mca.TYPE_HISTOGRAM:
-            print('other data was received')
-            break
+        data = mca.wait_histogram()
         print('baseline [ch] = ' + str(mca.command_until('B')))
         print('offset [ch] = ' + str(mca.command_until('D')))
         y = data
@@ -62,6 +58,7 @@ def _oscilloscope(mca, mode, n):
         pass
 
     mca.stop_measurement()
+    plt.show()
 
     return y
 

@@ -4,10 +4,8 @@ import time, datetime
 
 
 class PMCA:
-    STX = b'\x02'
-    ETX = b'\x03'
-    UART_DELIMITER = b'\x0D' # CR
-    UART_NEWLINE = b'\0A' # LF
+    UART_DELIMITER_RX = b'\x00\x00\x00\x00' # 4bytes NULL
+    UART_DELIMITER_TX = b'\x0D' # CR
 
     CHANNELS = 4096
     DATA_BYTE = 2
@@ -29,73 +27,55 @@ class PMCA:
             return self.ser.read(size=self.ser.in_waiting)
         return ""
 
-    def _read_result(self, until=UART_DELIMITER):
-        return self.ser.read_until(until)
+    def _read_result(self, until=UART_DELIMITER_RX):
+        #while True:
+        #    print(self.ser.read())
+        ret = self.ser.read_until(until)
+        data = self._data_of(ret)
+        if self._result_of(ret) != self.COMMAND_HANDLED:
+            raise CommandError(data)
+        return data
 
     @staticmethod
     def _result_of(ret):
-        return ret[-3:-1]
+        return ret[-7:-5]
 
     def command(self, cmd, param):
         if isinstance(param, int):
             param = format(param, '04X')
             pass
-        cmd = cmd + param + self.UART_DELIMITER.decode()
+        cmd = cmd + param + self.UART_DELIMITER_TX.decode()
         if self.echo:
             print(cmd)
             pass
         self.ser.write(cmd.encode('UTF-8'))
-        ret = self._read_result()
-        if self._result_of(ret) != self.COMMAND_HANDLED:
-            raise CommandError(ret)
+        self._read_result()
         pass
 
     @staticmethod
     def _data_of(ret):
-        return ret[:-3]
+        return ret[:-7]
 
-    def command_until(self, cmd, until=UART_DELIMITER):
-        cmd =  cmd+ self.UART_DELIMITER.decode()
+    def command_until(self, cmd, until=UART_DELIMITER_RX):
+        cmd = cmd + self.UART_DELIMITER_TX.decode()
         if self.echo:
             print(cmd)
             pass
         self.ser.write(cmd.encode('UTF-8'))
-        ret = self._read_result(until)
-        if self._result_of(ret) != self.COMMAND_HANDLED:
-            raise CommandError(ret)
-        return self._data_of(ret)
+        return self._read_result(until)
 
-    def _read_data(self):
-        # waite STX
-        while True:
-            c = self.ser.read(1)
-            #print(c)
-            if c == self.STX:
-                break
-        # read type
-        type = self.ser.read(1)
-        #print('type = ' + str(type))
-        # read data block
-        data = self.ser.read(self.CHANNELS * self.DATA_BYTE)
-        #print(len(data), data)
-        # clear other data
-        self.ser.reset_input_buffer()
-        self.ser.reset_output_buffer()
-
-        return type, data
-
-    def wait_data(self):
-        type, bytes = self._read_data()
-        return type, struct.unpack('<'+str(self.CHANNELS)+'H', bytes)  # type, data
+    def wait_histogram(self):
+        data = self._read_result()
+        return struct.unpack('<'+str(self.CHANNELS)+'H', data)
 
     def startup(self):
         return self.command_until('H')
 
     def stop_measurement(self):
-        ret = self.command('E', 0)
+        self.command('E', 0)
         self.ser.reset_input_buffer()
         self.ser.reset_output_buffer()
-        return ret
+        pass
 
     def set_lld(self, value):
         self.command('L', value)
