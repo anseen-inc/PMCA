@@ -45,6 +45,14 @@ PMCAから送信するデータの終端は4 byte NULL（0x00000000）となっ�
 実際には端末エミュレータ互換のためNULLの前に改行（CR）が存在します。
 加えて、データの成否を表す'OK/NG'の文字列が追加されるため、実質的な終端は7 byteになります。
 
+### サンプルスクリプト
+example.pyとexample_gui.pyがそれぞれCUI、GUIのサンプルスクリプトです。
+必要な外部パッケージは以下のとおりです。
+
+- pySerial
+- numpy
+- matplotlib
+
 ### 測定結果について
 'S'コマンドで測定を開始すると1秒おきに測定結果が出力されます。
 結果は2次元ヒストグラム（横軸：ADCチャネル、縦軸：頻度）のバイナリデータ（16 bit × 4096 ch）と終端7 byteです。
@@ -145,8 +153,9 @@ PSoC Createorのメニュー[Tools] -> [Bootloader Host...]からBootloader Host
 ## <sup>241</sup>Am
 ![<sup>241</sup>Amのスペクトル測定結果](./data/20200306_am241_proto.png)
 
-# 製品版について
-製品版ではMCA機能に加え、
+# ANS-PMCAについて
+ポケットMCA用にPSoC 5LP基板をおこしたものがANS-PMCAになります。
+ANS-PMCAにはMCA機能に加え、
 
 - 高電圧出力（+/-1000V）
 - 電源およびUSB通信の絶縁
@@ -154,18 +163,18 @@ PSoC Createorのメニュー[Tools] -> [Bootloader Host...]からBootloader Host
 が備わります。
 
 ![PSoC 5LPとその周辺回路](./data/20200227_board_blocks.png)
-この図は製品版PMCAのブロック図を示しています。
-赤で示した箇所が製品版で追加される機能です。
+この図はANS-PMCAのブロック図を示しています。
+赤で示した箇所がANS-PMCA版で追加される機能です。
 電源はUSBバスパワーから供給されますが、絶縁した後にデジタル/アナログそれぞれLDOで分離されます。
 高電圧生成器（HV）の制御はPSoCから行われ、SHVコネクタから出力されるとともにPSoCのDelta Sigma ADCにより電圧がモニタされます。
 入力は1μFの容量でDC成分が除去され、PSoC内部ではBLR（Base Line Restorer）機能により適切なベースライン電位が再設定されます。
 
 Prototyping Kitを用いたPMCAとの機能的な違いはHVブロックの有無です。
 回路的にはUSBの絶縁、高電圧生成回路、高電圧モニタ回路、入力容量、負荷抵抗、電源回路の有無が異なり、雑音特性が改善されています。
-例えば、無信号時の波形において電圧雑音がPrototyping Kitを用いたPMCAでは2.4 [ch rms]なのに対して、製品版では0.4 [ch rms]と1/6に改善されています。
+例えば、無信号時の波形において電圧雑音がPrototyping Kitを用いたPMCAでは3.0 [ch rms]なのに対して、ANS-PMCAでは0.6 [ch rms]と1/5に改善されています。
 
 ## Prototyping Kitを用いたPMCAの無信号波形
-![Prototyping Kitの無信号波形](./data/20200227_protokit_rms=2.4.png)
+![Prototyping Kitの無信号波形](./data/20200323_protokit_rms=3.0.png)
 
-## 製品版の無信号波形
-![製品版の無信号波形](./data/20200227_v2.1_rms=0.5.png)
+## ANS-PMCAの無信号波形
+![ANS-PMCAの無信号波形](./data/20200323_v2.2_rms=0.63.png)
