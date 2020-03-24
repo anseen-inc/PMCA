@@ -1,6 +1,5 @@
 import serial
 import struct
-import time, datetime
 
 
 class PMCA:
@@ -9,6 +8,7 @@ class PMCA:
 
     CHANNELS = 4096
     DATA_BYTE = 2
+    BYTES_OF_HISTOGRAM = CHANNELS * DATA_BYTE
 
     TYPE_HISTOGRAM = b'\x00'
     TYPE_HARDWARE_INFO = b'\x01'
@@ -27,49 +27,52 @@ class PMCA:
             return self.ser.read(size=self.ser.in_waiting)
         return ""
 
-    def _read_result(self, until=UART_DELIMITER_RX):
+    def _result_of(self, ret):
+        ret = ret[:-len(self.UART_DELIMITER_RX)-1]
+        return ret[-len(self.COMMAND_ERROR):]
+
+    def _data_of(self, ret):
+        return ret[:-len(self.UART_DELIMITER_RX)-len(self.COMMAND_ERROR)-1]
+
+    def write(self, cmd):
+        cmd += self.UART_DELIMITER_TX.decode()
+        if self.echo:
+            print(cmd)
+            pass
+        self.ser.write(cmd.encode('UTF-8'))
+        pass
+
+    def read(self, until=UART_DELIMITER_RX):
+        ret = self.ser.read_until(until)
+        return self._result_of(ret), self._data_of(ret)
+
+    def _read_data(self, until=UART_DELIMITER_RX):
         #while True:
         #    print(self.ser.read())
-        ret = self.ser.read_until(until)
-        data = self._data_of(ret)
-        if self._result_of(ret) != self.COMMAND_HANDLED:
+        res, data = self.read(until)
+        if res != self.COMMAND_HANDLED:
             raise CommandError(data)
         return data
 
-    @staticmethod
-    def _result_of(ret):
-        return ret[-7:-5]
-
-    def command(self, cmd, param):
-        if isinstance(param, int):
-            param = format(param, '04X')
+    def command(self, cmd, param=None):
+        if param is not None:
+            if isinstance(param, int):
+                param = format(param, '04X')
+                pass
+            cmd += param
             pass
-        cmd = cmd + param + self.UART_DELIMITER_TX.decode()
-        if self.echo:
-            print(cmd)
-            pass
-        self.ser.write(cmd.encode('UTF-8'))
-        self._read_result()
-        pass
+        self.write(cmd)
+        return self._read_data()
 
-    @staticmethod
-    def _data_of(ret):
-        return ret[:-7]
-
-    def command_until(self, cmd, until=UART_DELIMITER_RX):
-        cmd = cmd + self.UART_DELIMITER_TX.decode()
-        if self.echo:
-            print(cmd)
-            pass
-        self.ser.write(cmd.encode('UTF-8'))
-        return self._read_result(until)
+    def bin2array(self, bin):
+        return struct.unpack('<'+str(self.CHANNELS)+'H', bin)
 
     def wait_histogram(self):
-        data = self._read_result()
-        return struct.unpack('<'+str(self.CHANNELS)+'H', data)
+        data = self._read_data()
+        return self.bin2array(data)
 
     def startup(self):
-        return self.command_until('H')
+        return self.command('H')
 
     def stop_measurement(self):
         self.command('E', 0)
@@ -98,16 +101,4 @@ class PMCA:
 
 class CommandError(Exception):
     """制御コマンドの返答がNGの時を表すエラー"""
-    pass
-
-
-def save_histogram_by_date(histogram):
-    filename = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S.csv')
-    with open(filename, 'w') as f:
-        i = 0
-        for y in histogram:
-            f.write('%d, %d\n' % (i, y))
-            i += 1
-            pass
-        pass
     pass
