@@ -9,6 +9,7 @@ import serial.tools.list_ports
 import threading
 import queue
 import numpy as np
+import csv
 
 class Application(tk.Frame):
     def __init__(self, master, mca):
@@ -93,7 +94,6 @@ class Application(tk.Frame):
 
         self.update()
         self.onModeChanged()
-        self.sendCommand('G2')
         self.sendCommand('H')
 
     def update_graph(self):

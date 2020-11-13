@@ -114,15 +114,15 @@ def main():
             mca.stop_measurement()
             print(mca.startup())
 
-            mca.set_lld(250)
-            mca.command('X', 3)
+            mca.set_lld(16)
+            mca.command('X', 1)
             mca.command('G', 2)
             mca.command('I', 0)
-            mca.command('F', 3)
+            mca.command('F', 1)
             print(datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
+            histogram = measure(mca, 3)
             #osc_freerun(mca, 3)
             #osc_single(mca)
-            histogram = measure(mca, 3)
         except pmca.CommandError as e:
             print(e)
 
