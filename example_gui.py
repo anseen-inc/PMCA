@@ -99,7 +99,7 @@ class Application(tk.Frame):
     def update_graph(self):
         self.lines.set_data(self.graph_x, self.graph_y)
         self.ax.relim()
-        self.ax.autoscale_view()
+        self.ax.autoscale()
         self.canvas.draw()
 
     def update(self):
